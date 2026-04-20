@@ -6,3 +6,236 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ─── Enums ───────────────────────────────────────────────
+enum Role {
+  ADMIN 
+  MANAGER
+  CASHIER
+}
+
+enum PaymentMethod {
+  CASH 
+  CARD 
+  GCASH
+  MAYA
+}
+
+enum TransactionStatus {
+  PENDING 
+  COMPETED
+  VOIDED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// ─── Users & Auth ────────────────────────────────────────
+
+model User {
+  id              String      @id @default(cuid())
+  email           String      @unique
+  password        String
+  firstName       String
+  lastName        String
+  role            Role        @default(CASHIER)
+  isActive        Boolean     @default(true)
+  refreshToken    String? 
+
+  locationId      String?
+  location        Location? @relation(fields: [locationId], references: [id])
+
+  transactions    Transaction[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([email])
+  @@index([locationId])
+  @@map("users")
+}
+
+// ─── Locations ───────────────────────────────────────────
+
+model Location {
+  id               String      @id @default(cuid())
+  name             String
+  address          String?
+  phone            String?
+  isActive         Boolean     @default(true)
+
+  users            User[]
+  inventory        Inventory[]
+  transactions     Transaction[]
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@map("locations")
+}
+
+// ─── Items & Categories ──────────────────────────────────
+
+model ItemCategory {
+  id                String      @id @default(cuid())
+  name              String      @unique
+  description       String?
+  isActive          Boolean     @default(true)
+
+  items             Item[]
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@map("item_categories")
+}
+
+model Item {
+  id                  String      @id @default(cuid())
+  name                String
+  description         String?
+  sku                 String      @unique
+  barcode             String?     @unique
+  price               Decimal     @db.Decimal(10, 2)
+  cost                Decimal     @db.Decimal(10, 2) @default(0)
+  imageUrl            String?
+  isActive            Boolean     @default(true)
+
+  categoryId          String?
+  category            ItemCategory?   @relation(fields: [categoryId], references: [id])
+
+  inventory           Inventory[]
+  transactionItems    TransactionItem[]
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([barcode])
+  @@index([sku])
+  @@index([categoryId])
+  @@map("items")
+}
+
+// ─── Inventory ───────────────────────────────────────────"
+
+model Inventory {
+  id                  String        @id @default(cuid())
+  quantity            Int           @default(0)
+  lowStockAlert       Int           @default(10)
+
+  itemId              String
+  item                Item          @relation(fields: [itemId], references: [id])
+
+  locationId          String
+  location            Location      @relation(fields: [locationId], references: [id])
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@unique([itemId, locationId])
+  @@index([itemId])
+  @@index([locationId])
+  @@map("inventory")
+}
+
+// ─── Customers ───────────────────────────────────────────
+
+model Customer {
+  id                  String      @id @default(cuid())
+  firstName           String
+  lastName            String
+  email               String?     @unique
+  phone               String?     @unique
+  address             String?
+  isActive            Boolean     @default(true)
+
+  transactions        Transaction[]
+
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@map("customers")
+}
+
+// ─── Transactions ────────────────────────────────────────
+
+model Transaction {
+  id              String            @id @default(cuid())
+  receiptNumber   String            @unique
+  status          TransactionStatus @default(PENDING)
+  subtotal        Decimal           @db.Decimal(10, 2)
+  taxAmount       Decimal           @db.Decimal(10, 2) @default(0)
+  discountAmount  Decimal           @db.Decimal(10, 2) @default(0)
+  totalAmount     Decimal           @db.Decimal(10, 2)
+  notes           String?
+
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+
+  cashierId       String
+  cashier         User      @relation(fields: [cashierId], references: [id])
+
+  locationId      String
+  location        Location  @relation(fields: [locationId], references: [id])
+
+  items           TransactionItem[]
+  payment         Payment?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([receiptNumber])
+  @@index([cashierId])
+  @@index([locationId])
+  @@index([customerId])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model TransactionItem {
+  id            String  @id @default(cuid())
+  quantity      Int
+  unitPrice     Decimal @db.Decimal(10, 2)
+  subtotal      Decimal @db.Decimal(10, 2)
+
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+
+  itemId        String
+  item          Item        @relation(fields: [itemId], references: [id])
+
+  createdAt     DateTime @default(now())
+
+  @@index([transactionId])
+  @@index([itemId])
+  @@map("transaction_items")
+}
+
+
+// ─── Payments ────────────────────────────────────────────
+
+model Payment {
+  id              String        @id @default(cuid())
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  amount          Decimal       @db.Decimal(10, 2)
+  amountTendered  Decimal       @db.Decimal(10, 2) @default(0)
+  changeAmount    Decimal       @db.Decimal(10, 2) @default(0)
+  reference       String?
+
+  transactionId   String      @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id])
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([transactionId])
+  @@map("payments")
+}
