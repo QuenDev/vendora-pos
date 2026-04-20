@@ -23,7 +23,7 @@ enum PaymentMethod {
 
 enum TransactionStatus {
   PENDING 
-  COMPETED
+  COMPLETED
   VOIDED
   REFUNDED
 }
@@ -121,7 +121,7 @@ model Item {
   @@map("items")
 }
 
-// ─── Inventory ───────────────────────────────────────────"
+// ─── Inventory ───────────────────────────────────────────
 
 model Inventory {
   id                  String        @id @default(cuid())
