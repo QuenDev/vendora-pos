@@ -4,6 +4,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import { env } from './config/env'
 import authRoutes from './modules/auth/auth.routes'
+import userRoutes from './modules/users/users.route'
 
 const app = express()
 
@@ -17,5 +18,6 @@ app.get('/health', (_req, res) => {
 })
 
 app.use('/api/v1/auth', authRoutes)
+app.use('/api/v1/users', userRoutes)
 
 export default app
