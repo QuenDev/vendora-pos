@@ -47,7 +47,7 @@ export const locationsController = {
 
     delete: async (req: Request, res: Response) => {
         try {
-            const location = await.locationsService.delete(req.params.id as string)
+            const location = await locationsService.delete(req.params.id as string)
             return sendSuccess(res, location, 'Location Deactivated')
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to deactivate location'

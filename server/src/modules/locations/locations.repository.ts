@@ -15,14 +15,14 @@ export const locationsRepository = {
         })
     },
 
-    create: async (data: CreateLocationInput ) => {
-        return prisma.location.create ({
-            data: {
-               name: data.name,
-               address: data.address,
-               phone: data.phone,
+  create: async (data: CreateLocationInput ) => {
+      return prisma.location.create ({
+        data: {
+            name: data.name,
+            address: data.address,
+            phone: data.phone,
         },
-        })
+      })
     },
   update: async (id: string, data: UpdateLocationInput) => {
     return prisma.location.update({
